@@ -1,0 +1,15 @@
+export const metadata = {
+  title: "TravelAnimator",
+};
+
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="h-screen w-screen overflow-hidden">
+      {children}
+    </div>
+  );
+}
