@@ -178,6 +178,7 @@ export default function Map() {
   });
   const pulsingMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const currentPosRef = useRef<[number, number] | null>(null);
+  const sharedRouteLoadedRef = useRef(false);
 
   // Export state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -215,6 +216,29 @@ export default function Map() {
       mapRef.current = null;
     };
   }, []);
+
+  // Load shared route from URL
+  useEffect(() => {
+    if (!mapLoaded || sharedRouteLoadedRef.current) return;
+    sharedRouteLoadedRef.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const routeParam = params.get("route");
+    if (!routeParam) return;
+
+    try {
+      const data = JSON.parse(atob(routeParam));
+      if (data.destinations?.length) {
+        setDestinations(data.destinations);
+      }
+      if (data.settings) {
+        setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch {
+      // Invalid shared route data
+    }
+  }, [mapLoaded]);
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -757,6 +781,14 @@ export default function Map() {
     setDestinations(newDests);
   }, []);
 
+  const handleLoadRoute = useCallback(
+    (dests: Destination[], s: AnimationSettings) => {
+      setDestinations(dests);
+      setSettings(s);
+    },
+    []
+  );
+
   return (
     <div className="relative h-screen w-screen">
       <div
@@ -782,6 +814,7 @@ export default function Map() {
         settings={settings}
         onSettingsChange={setSettings}
         onOpenExport={() => setShowExportModal(true)}
+        onLoadRoute={handleLoadRoute}
       />
       <ExportModal
         isOpen={showExportModal}
