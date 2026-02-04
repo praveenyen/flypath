@@ -6,6 +6,7 @@ import greatCircle from "@turf/great-circle";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Toaster, toast } from "sonner";
 import Sidebar from "./Sidebar";
+import { useTheme } from "./ThemeProvider";
 import ExportModal, {
   type ExportOptions,
   type ExportState,
@@ -156,6 +157,7 @@ function triggerDownload(url: string, filename: string) {
 }
 
 export default function Map() {
+  const { theme } = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -168,6 +170,14 @@ export default function Map() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // Sync map style with theme toggle
+  useEffect(() => {
+    setSettings((prev) => ({
+      ...prev,
+      mapStyle: theme === "dark" ? "dark" : "light",
+    }));
+  }, [theme]);
 
   // Animation state
   const [isAnimating, setIsAnimating] = useState(false);
@@ -854,10 +864,10 @@ export default function Map() {
         }
       />
       {!mapLoaded && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0a0a0a]">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-[#00D4FF]" />
-            <span className="text-sm text-zinc-500">Loading map...</span>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#00D4FF] dark:border-white/20 dark:border-t-[#00D4FF]" />
+            <span className="text-sm text-gray-400 dark:text-zinc-500">Loading map...</span>
           </div>
         </div>
       )}
@@ -888,14 +898,20 @@ export default function Map() {
         errorMessage={errorMessage}
       />
       <Toaster
-        theme="dark"
+        theme={theme}
         position="top-center"
         toastOptions={{
-          style: {
-            background: "rgba(25, 25, 25, 0.95)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            color: "#fff",
-          },
+          style: theme === "dark"
+            ? {
+                background: "rgba(25, 25, 25, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#fff",
+              }
+            : {
+                background: "rgba(255, 255, 255, 0.95)",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                color: "#111",
+              },
         }}
       />
     </div>

@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import DestinationItem from "./DestinationItem";
+import { useTheme } from "./ThemeProvider";
 import type { AnimationSettings } from "./Map";
 
 const MAP_STYLE_OPTIONS: {
@@ -90,6 +91,7 @@ export default function Sidebar({
   onOpenExport,
   onLoadRoute,
 }: SidebarProps) {
+  const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocoderResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -231,7 +233,7 @@ export default function Sidebar({
   return (
     <>
     <div
-      className="sidebar-container sidebar-pattern fixed inset-x-0 bottom-0 z-10 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[rgba(15,15,15,0.85)] backdrop-blur-xl md:absolute md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[380px] md:rounded-2xl"
+      className="sidebar-container sidebar-pattern fixed inset-x-0 bottom-0 z-10 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white/90 backdrop-blur-xl transition-colors duration-200 dark:border-white/10 dark:bg-[rgba(15,15,15,0.85)] md:absolute md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[380px] md:rounded-2xl"
       data-mobile-collapsed={!mobileExpanded}
       data-desktop-collapsed={!sidebarOpen}
     >
@@ -240,39 +242,64 @@ export default function Sidebar({
         className="flex cursor-pointer justify-center py-2 md:hidden"
         onClick={() => setMobileExpanded(!mobileExpanded)}
       >
-        <div className="h-1 w-8 rounded-full bg-white/20" />
+        <div className="h-1 w-8 rounded-full bg-gray-300 dark:bg-white/20" />
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-2 pb-4 md:pt-6">
-        <h1 className="text-xl font-semibold text-white">
-          🌍 TravelAnimator
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+          TravelAnimator
         </h1>
-        <button
-          onClick={() => setMyRoutesOpen(!myRoutesOpen)}
-          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-            myRoutesOpen
-              ? "bg-[#00D4FF]/20 text-[#00D4FF]"
-              : "text-zinc-500 hover:bg-white/10 hover:text-white"
-          }`}
-          title="My Routes"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-white/10 dark:hover:text-white"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
+            {theme === "dark" ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={() => setMyRoutesOpen(!myRoutesOpen)}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              myRoutesOpen
+                ? "bg-[#00D4FF]/20 text-[#00D4FF]"
+                : "text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-white/10 dark:hover:text-white"
+            }`}
+            title="My Routes"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Add Destination */}
       <div className="px-6 pb-4">
-        <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-400">
+        <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">
           Add Destination
         </label>
         <div className="relative">
@@ -284,20 +311,20 @@ export default function Sidebar({
             onBlur={() => setTimeout(() => setIsOpen(false), 200)}
             placeholder="Search for a city..."
             disabled={isAnimating}
-            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder-zinc-500"
           />
 
           {isOpen && results.length > 0 && !isAnimating && (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-white/10 bg-[rgba(25,25,25,0.95)] shadow-xl backdrop-blur-xl">
+            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[rgba(25,25,25,0.95)]">
               {results.map((r) => (
                 <button
                   key={r.id}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(r)}
-                  className="w-full px-4 py-2.5 text-left transition-colors hover:bg-white/10"
+                  className="w-full px-4 py-2.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                 >
-                  <span className="text-sm text-white">{r.name}</span>
-                  <span className="ml-2 text-xs text-zinc-500">
+                  <span className="text-sm text-gray-900 dark:text-white">{r.name}</span>
+                  <span className="ml-2 text-xs text-gray-400 dark:text-zinc-500">
                     {r.country}
                   </span>
                 </button>
@@ -311,11 +338,11 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto px-6 pb-4">
         {myRoutesOpen ? (
           <div>
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-400">
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400">
               Saved Routes
             </h2>
             {savedRoutes.length === 0 ? (
-              <p className="py-8 text-center text-sm text-zinc-500">
+              <p className="py-8 text-center text-sm text-gray-400 dark:text-zinc-500">
                 No saved routes yet
               </p>
             ) : (
@@ -323,7 +350,7 @@ export default function Sidebar({
                 {savedRoutes.map((route) => (
                   <div
                     key={route.id}
-                    className="rounded-lg border border-white/5 bg-white/5 p-3"
+                    className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-white/5 dark:bg-white/5"
                   >
                     {editingId === route.id ? (
                       <div className="flex gap-2">
@@ -335,7 +362,7 @@ export default function Sidebar({
                             if (e.key === "Enter") handleRenameRoute(route.id);
                             if (e.key === "Escape") setEditingId(null);
                           }}
-                          className="flex-1 rounded bg-white/10 px-2 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-[#00D4FF]/50"
+                          className="flex-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-[#00D4FF]/50 dark:bg-white/10 dark:text-white"
                         />
                         <button
                           onClick={() => handleRenameRoute(route.id)}
@@ -347,10 +374,10 @@ export default function Sidebar({
                     ) : (
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-white">
+                          <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
                             {route.name}
                           </div>
-                          <div className="mt-0.5 text-xs text-zinc-500">
+                          <div className="mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
                             {route.destinations.length} cities &middot;{" "}
                             {new Date(route.createdAt).toLocaleDateString()}
                           </div>
@@ -361,7 +388,7 @@ export default function Sidebar({
                               onLoadRoute(route.destinations, route.settings);
                               setMyRoutesOpen(false);
                             }}
-                            className="rounded px-2 py-1 text-xs text-[#00D4FF] transition-colors hover:bg-white/10"
+                            className="rounded px-2 py-1 text-xs text-[#00D4FF] transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                           >
                             Load
                           </button>
@@ -370,7 +397,7 @@ export default function Sidebar({
                               setEditingId(route.id);
                               setEditingName(route.name);
                             }}
-                            className="rounded px-1.5 py-1 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white"
+                            className="rounded px-1.5 py-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-white/10 dark:hover:text-white"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -379,7 +406,7 @@ export default function Sidebar({
                           </button>
                           <button
                             onClick={() => handleDeleteRoute(route.id)}
-                            className="rounded px-1.5 py-1 text-zinc-500 transition-colors hover:bg-white/10 hover:text-red-400"
+                            className="rounded px-1.5 py-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-400 dark:text-zinc-500 dark:hover:bg-white/10"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <polyline points="3 6 5 6 21 6" />
@@ -399,7 +426,7 @@ export default function Sidebar({
         ) : (
         <>
         {destinations.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">
+          <p className="py-8 text-center text-sm text-gray-400 dark:text-zinc-500">
             No destinations added yet
           </p>
         ) : (
@@ -439,10 +466,10 @@ export default function Sidebar({
 
         {/* Animation Settings (collapsible) */}
         {destinations.length >= 2 && (
-          <div className="mt-4 border-t border-white/10 pt-3">
+          <div className="mt-4 border-t border-gray-200 pt-3 dark:border-white/10">
             <button
               onClick={() => setSettingsOpen(!settingsOpen)}
-              className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wider text-zinc-400"
+              className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-zinc-400"
             >
               <span>Animation Settings</span>
               <svg
@@ -460,7 +487,7 @@ export default function Sidebar({
               <div className="mt-3 space-y-4">
                 {/* Map Style */}
                 <div>
-                  <label className="mb-1.5 block text-xs text-zinc-400">
+                  <label className="mb-1.5 block text-xs text-gray-500 dark:text-zinc-400">
                     Map Style
                   </label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -471,7 +498,7 @@ export default function Sidebar({
                         className={`overflow-hidden rounded-lg border transition-colors ${
                           settings.mapStyle === opt.id
                             ? "border-cyan-400 ring-1 ring-cyan-400/50"
-                            : "border-white/10 hover:border-white/20"
+                            : "border-gray-200 hover:border-gray-300 dark:border-white/10 dark:hover:border-white/20"
                         }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -489,7 +516,7 @@ export default function Sidebar({
                           className={`py-1 text-center text-[10px] font-medium ${
                             settings.mapStyle === opt.id
                               ? "text-cyan-400"
-                              : "text-zinc-500"
+                              : "text-gray-400 dark:text-zinc-500"
                           }`}
                         >
                           {opt.label}
@@ -502,8 +529,8 @@ export default function Sidebar({
                 {/* Speed */}
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-xs text-zinc-400">Speed</label>
-                    <span className="text-xs text-zinc-500">
+                    <label className="text-xs text-gray-500 dark:text-zinc-400">Speed</label>
+                    <span className="text-xs text-gray-400 dark:text-zinc-500">
                       {settings.speed.toFixed(1)}x
                     </span>
                   </div>
@@ -523,10 +550,10 @@ export default function Sidebar({
                 {/* Pause Duration */}
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-xs text-zinc-400">
+                    <label className="text-xs text-gray-500 dark:text-zinc-400">
                       Pause Duration
                     </label>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-gray-400 dark:text-zinc-500">
                       {settings.pauseDuration.toFixed(1)}s
                     </span>
                   </div>
@@ -549,10 +576,10 @@ export default function Sidebar({
                 {/* Zoom at Stops */}
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-xs text-zinc-400">
+                    <label className="text-xs text-gray-500 dark:text-zinc-400">
                       Zoom at Stops
                     </label>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-gray-400 dark:text-zinc-500">
                       {settings.stopZoom}
                     </span>
                   </div>
@@ -571,7 +598,7 @@ export default function Sidebar({
 
                 {/* Line Style */}
                 <div>
-                  <label className="mb-1.5 block text-xs text-zinc-400">
+                  <label className="mb-1.5 block text-xs text-gray-500 dark:text-zinc-400">
                     Line Style
                   </label>
                   <div className="flex gap-1">
@@ -581,8 +608,8 @@ export default function Sidebar({
                         onClick={() => updateSetting("lineStyle", style)}
                         className={`flex-1 rounded px-2 py-1 text-xs capitalize transition-colors ${
                           settings.lineStyle === style
-                            ? "bg-white/20 text-white"
-                            : "bg-white/5 text-zinc-500 hover:bg-white/10"
+                            ? "bg-gray-200 text-gray-900 dark:bg-white/20 dark:text-white"
+                            : "bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/5 dark:text-zinc-500 dark:hover:bg-white/10"
                         }`}
                       >
                         {style}
@@ -593,7 +620,7 @@ export default function Sidebar({
 
                 {/* Route Color */}
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-zinc-400">Route Color</label>
+                  <label className="text-xs text-gray-500 dark:text-zinc-400">Route Color</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -601,9 +628,9 @@ export default function Sidebar({
                       onChange={(e) =>
                         updateSetting("routeColor", e.target.value)
                       }
-                      className="h-6 w-6 cursor-pointer rounded border border-white/10 bg-transparent p-0"
+                      className="h-6 w-6 cursor-pointer rounded border border-gray-300 bg-transparent p-0 dark:border-white/10"
                     />
-                    <span className="font-mono text-xs text-zinc-500">
+                    <span className="font-mono text-xs text-gray-400 dark:text-zinc-500">
                       {settings.routeColor}
                     </span>
                   </div>
@@ -611,7 +638,7 @@ export default function Sidebar({
 
                 {/* Show Labels */}
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-zinc-400">
+                  <label className="text-xs text-gray-500 dark:text-zinc-400">
                     Show Labels
                   </label>
                   <button
@@ -619,11 +646,11 @@ export default function Sidebar({
                       updateSetting("showLabels", !settings.showLabels)
                     }
                     className={`relative h-5 w-9 rounded-full transition-colors ${
-                      settings.showLabels ? "bg-cyan-500" : "bg-white/10"
+                      settings.showLabels ? "bg-cyan-500" : "bg-gray-200 dark:bg-white/10"
                     }`}
                   >
                     <div
-                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
                         settings.showLabels
                           ? "translate-x-4"
                           : "translate-x-0.5"
@@ -638,7 +665,7 @@ export default function Sidebar({
 
         {/* Save & Share */}
         {destinations.length > 0 && !isAnimating && (
-          <div className="mt-4 border-t border-white/10 pt-3">
+          <div className="mt-4 border-t border-gray-200 pt-3 dark:border-white/10">
             {showSaveInput ? (
               <div className="flex gap-2">
                 <input
@@ -650,7 +677,7 @@ export default function Sidebar({
                     if (e.key === "Escape") setShowSaveInput(false);
                   }}
                   placeholder="Route name..."
-                  className="flex-1 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:ring-1 focus:ring-[#00D4FF]/50"
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-1 focus:ring-[#00D4FF]/50 dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder-zinc-500"
                 />
                 <button
                   onClick={handleSaveRoute}
@@ -668,7 +695,7 @@ export default function Sidebar({
                     );
                     setShowSaveInput(true);
                   }}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/10"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -679,7 +706,7 @@ export default function Sidebar({
                 </button>
                 <button
                   onClick={handleShare}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/10"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="18" cy="5" r="3" />
@@ -700,7 +727,7 @@ export default function Sidebar({
 
       {/* Animation Controls */}
       {destinations.length >= 2 && (
-        <div className="border-t border-white/10 px-6 py-4">
+        <div className="border-t border-gray-200 px-6 py-4 dark:border-white/10">
           {!isAnimating ? (
             <div className="space-y-2">
               <button
@@ -719,7 +746,7 @@ export default function Sidebar({
               </button>
               <button
                 onClick={onOpenExport}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/10"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-100 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
               >
                 <svg
                   width="14"
@@ -739,7 +766,7 @@ export default function Sidebar({
           ) : (
             <div className="space-y-3">
               {/* Progress bar */}
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
                 <div
                   className="h-full rounded-full bg-[#00D4FF] transition-[width] duration-150"
                   style={{ width: `${animationProgress * 100}%` }}
@@ -750,7 +777,7 @@ export default function Sidebar({
               <div className="flex items-center justify-between">
                 <button
                   onClick={onTogglePause}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-900 transition-colors hover:bg-gray-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
                 >
                   {isPaused ? (
                     <svg
@@ -773,13 +800,13 @@ export default function Sidebar({
                   )}
                 </button>
 
-                <span className="text-xs font-medium text-zinc-400">
+                <span className="text-xs font-medium text-gray-500 dark:text-zinc-400">
                   {Math.round(animationProgress * 100)}%
                 </span>
 
                 <button
                   onClick={onRestartAnimation}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-900 transition-colors hover:bg-gray-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
                 >
                   <svg
                     width="14"
@@ -799,7 +826,7 @@ export default function Sidebar({
 
     {/* Desktop toggle button */}
     <button
-      className={`hidden md:flex absolute z-10 top-1/2 -translate-y-1/2 h-10 w-5 items-center justify-center rounded-r-lg border border-l-0 border-white/10 bg-[rgba(15,15,15,0.85)] backdrop-blur-xl text-zinc-400 transition-all duration-300 hover:text-white ${
+      className={`hidden md:flex absolute z-10 top-1/2 -translate-y-1/2 h-10 w-5 items-center justify-center rounded-r-lg border border-l-0 border-gray-200 bg-white text-gray-400 transition-all duration-300 hover:text-gray-900 dark:border-white/10 dark:bg-[rgba(15,15,15,0.85)] dark:text-zinc-400 dark:hover:text-white ${
         sidebarOpen
           ? "left-[calc(1rem+380px)]"
           : "left-0"

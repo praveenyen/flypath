@@ -43,12 +43,12 @@ export default function DestinationItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-3 group"
+      className="group flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors duration-200 hover:bg-gray-100 dark:border-white/5 dark:bg-white/5 dark:hover:bg-white/[0.07]"
     >
       <button
         {...attributes}
         {...(disabled ? {} : listeners)}
-        className={`text-zinc-600 ${disabled ? "opacity-30" : "cursor-grab hover:text-zinc-400 active:cursor-grabbing"}`}
+        className={`text-gray-400 dark:text-zinc-600 ${disabled ? "opacity-30" : "cursor-grab hover:text-gray-600 dark:hover:text-zinc-400 active:cursor-grabbing"}`}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <circle cx="5" cy="3" r="1.5" />
@@ -65,10 +65,10 @@ export default function DestinationItem({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-white">
+        <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
           {destination.name}
         </div>
-        <div className="truncate text-xs text-zinc-500">
+        <div className="truncate text-xs text-gray-400 dark:text-zinc-500">
           {destination.country}
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function DestinationItem({
       {!disabled && (
         <button
           onClick={() => onRemove(destination.id)}
-          className="text-zinc-600 opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
+          className="text-gray-400 opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100 dark:text-zinc-600"
         >
           <svg
             width="16"
