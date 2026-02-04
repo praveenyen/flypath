@@ -13,6 +13,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@mapbox/mapbox-gl-geocoder": "^5.1.2",
+    "@turf/great-circle": "^7.3.3",
+    "@turf/helpers": "^7.3.3",
     "mapbox-gl": "^3.18.1",
     "next": "16.1.6",
     "react": "19.2.3",

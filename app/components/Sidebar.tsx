@@ -37,6 +37,12 @@ interface SidebarProps {
   onAddDestination: (dest: Destination) => void;
   onRemoveDestination: (id: string) => void;
   onReorderDestinations: (destinations: Destination[]) => void;
+  isAnimating: boolean;
+  isPaused: boolean;
+  animationProgress: number;
+  onStartAnimation: () => void;
+  onTogglePause: () => void;
+  onRestartAnimation: () => void;
 }
 
 export default function Sidebar({
@@ -44,6 +50,12 @@ export default function Sidebar({
   onAddDestination,
   onRemoveDestination,
   onReorderDestinations,
+  isAnimating,
+  isPaused,
+  animationProgress,
+  onStartAnimation,
+  onTogglePause,
+  onRestartAnimation,
 }: SidebarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocoderResult[]>([]);
@@ -131,10 +143,11 @@ export default function Sidebar({
             onFocus={() => results.length > 0 && setIsOpen(true)}
             onBlur={() => setTimeout(() => setIsOpen(false), 200)}
             placeholder="Search for a city..."
-            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500/50"
+            disabled={isAnimating}
+            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
           />
 
-          {isOpen && results.length > 0 && (
+          {isOpen && results.length > 0 && !isAnimating && (
             <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-white/10 bg-[rgba(25,25,25,0.95)] shadow-xl backdrop-blur-xl">
               {results.map((r) => (
                 <button
@@ -155,7 +168,7 @@ export default function Sidebar({
       </div>
 
       {/* Destinations List */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-4">
         {destinations.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500">
             No destinations added yet
@@ -177,6 +190,7 @@ export default function Sidebar({
                     destination={dest}
                     index={index}
                     onRemove={onRemoveDestination}
+                    disabled={isAnimating}
                   />
                 ))}
               </div>
@@ -184,6 +198,84 @@ export default function Sidebar({
           </DndContext>
         )}
       </div>
+
+      {/* Animation Controls */}
+      {destinations.length >= 2 && (
+        <div className="border-t border-white/10 px-6 py-4">
+          {!isAnimating ? (
+            <button
+              onClick={onStartAnimation}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00D4FF] py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#00bfe6]"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Animate Route
+            </button>
+          ) : (
+            <div className="space-y-3">
+              {/* Progress bar */}
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#00D4FF] transition-[width] duration-150"
+                  style={{ width: `${animationProgress * 100}%` }}
+                />
+              </div>
+
+              {/* Controls row */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={onTogglePause}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                >
+                  {isPaused ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+                    </svg>
+                  )}
+                </button>
+
+                <span className="text-xs font-medium text-zinc-400">
+                  {Math.round(animationProgress * 100)}%
+                </span>
+
+                <button
+                  onClick={onRestartAnimation}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L14 10h8V2l-4.35 4.35z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

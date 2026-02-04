@@ -15,12 +15,14 @@ interface DestinationItemProps {
   destination: Destination;
   index: number;
   onRemove: (id: string) => void;
+  disabled?: boolean;
 }
 
 export default function DestinationItem({
   destination,
   index,
   onRemove,
+  disabled,
 }: DestinationItemProps) {
   const {
     attributes,
@@ -45,8 +47,8 @@ export default function DestinationItem({
     >
       <button
         {...attributes}
-        {...listeners}
-        className="cursor-grab text-zinc-600 hover:text-zinc-400 active:cursor-grabbing"
+        {...(disabled ? {} : listeners)}
+        className={`text-zinc-600 ${disabled ? "opacity-30" : "cursor-grab hover:text-zinc-400 active:cursor-grabbing"}`}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <circle cx="5" cy="3" r="1.5" />
@@ -71,22 +73,24 @@ export default function DestinationItem({
         </div>
       </div>
 
-      <button
-        onClick={() => onRemove(destination.id)}
-        className="text-zinc-600 opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
+      {!disabled && (
+        <button
+          onClick={() => onRemove(destination.id)}
+          className="text-zinc-600 opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
         >
-          <line x1="4" y1="4" x2="12" y2="12" />
-          <line x1="12" y1="4" x2="4" y2="12" />
-        </svg>
-      </button>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <line x1="4" y1="4" x2="12" y2="12" />
+            <line x1="12" y1="4" x2="4" y2="12" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
