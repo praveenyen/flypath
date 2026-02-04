@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import greatCircle from "@turf/great-circle";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { Toaster, toast } from "sonner";
 import Sidebar from "./Sidebar";
 import ExportModal, {
   type ExportOptions,
@@ -364,8 +365,11 @@ export default function Map() {
     } else if (destinations.length > 1) {
       const bounds = new mapboxgl.LngLatBounds();
       destinations.forEach((d) => bounds.extend([d.lng, d.lat]));
+      const mobile = window.innerWidth < 768;
       map.fitBounds(bounds, {
-        padding: { top: 80, bottom: 80, left: 420, right: 80 },
+        padding: mobile
+          ? { top: 40, bottom: 300, left: 40, right: 40 }
+          : { top: 80, bottom: 80, left: 420, right: 80 },
       });
     }
   }, [destinations, mapLoaded, isAnimating, settings.showLabels]);
@@ -534,8 +538,11 @@ export default function Map() {
       // Zoom out to fit all
       const bounds = new mapboxgl.LngLatBounds();
       destinations.forEach((d) => bounds.extend([d.lng, d.lat]));
+      const mobile = window.innerWidth < 768;
       map.fitBounds(bounds, {
-        padding: { top: 80, bottom: 80, left: 420, right: 80 },
+        padding: mobile
+          ? { top: 40, bottom: 300, left: 40, right: 40 }
+          : { top: 80, bottom: 80, left: 420, right: 80 },
         duration: 2000,
       });
 
@@ -565,6 +572,51 @@ export default function Map() {
       startAnimation();
     });
   }, [startAnimation]);
+
+  const handleStopAnimation = useCallback(() => {
+    controlRef.current.cancelled = true;
+    pulsingMarkerRef.current?.remove();
+    pulsingMarkerRef.current = null;
+    currentPosRef.current = null;
+    setIsAnimating(false);
+    setIsPaused(false);
+    setAnimationProgress(0);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (isAnimating) {
+          handleTogglePause();
+        } else if (destinations.length >= 2) {
+          startAnimation();
+        }
+      } else if (e.key === "r" || e.key === "R") {
+        if (isAnimating) {
+          handleRestartAnimation();
+        }
+      } else if (e.key === "Escape") {
+        if (isAnimating) {
+          handleStopAnimation();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isAnimating,
+    destinations.length,
+    handleTogglePause,
+    startAnimation,
+    handleRestartAnimation,
+    handleStopAnimation,
+  ]);
 
   // --- Export ---
   const handleExport = useCallback(
@@ -749,6 +801,7 @@ export default function Map() {
         }
 
         setExportState("done");
+        toast.success("Export complete!");
       } catch (err) {
         setExportState("error");
         setErrorMessage(
@@ -800,6 +853,14 @@ export default function Map() {
             : undefined
         }
       />
+      {!mapLoaded && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0a0a0a]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-[#00D4FF]" />
+            <span className="text-sm text-zinc-500">Loading map...</span>
+          </div>
+        </div>
+      )}
       <Sidebar
         destinations={destinations}
         onAddDestination={handleAddDestination}
@@ -825,6 +886,17 @@ export default function Map() {
         downloadUrl={downloadUrl}
         downloadFormat={downloadFormat}
         errorMessage={errorMessage}
+      />
+      <Toaster
+        theme="dark"
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "rgba(25, 25, 25, 0.95)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            color: "#fff",
+          },
+        }}
       />
     </div>
   );

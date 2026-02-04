@@ -14,6 +14,8 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import DestinationItem from "./DestinationItem";
 import type { AnimationSettings } from "./Map";
 
@@ -99,7 +101,8 @@ export default function Sidebar({
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [saveName, setSaveName] = useState("");
-  const [shareMessage, setShareMessage] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
@@ -131,6 +134,7 @@ export default function Sidebar({
     persistRoutes([route, ...savedRoutes]);
     setShowSaveInput(false);
     setSaveName("");
+    toast.success("Route saved!");
   };
 
   const handleDeleteRoute = (id: string) => {
@@ -153,8 +157,7 @@ export default function Sidebar({
     const encoded = btoa(JSON.stringify(data));
     const url = `${window.location.origin}/app?route=${encoded}`;
     navigator.clipboard.writeText(url).then(() => {
-      setShareMessage("Link copied!");
-      setTimeout(() => setShareMessage(""), 2000);
+      toast.success("Link copied!");
     });
   };
 
@@ -213,6 +216,7 @@ export default function Sidebar({
     setQuery("");
     setResults([]);
     setIsOpen(false);
+    setMobileExpanded(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -225,9 +229,22 @@ export default function Sidebar({
   };
 
   return (
-    <div className="absolute left-4 top-4 bottom-4 z-10 flex w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[rgba(15,15,15,0.85)] backdrop-blur-xl">
+    <>
+    <div
+      className="sidebar-container sidebar-pattern fixed inset-x-0 bottom-0 z-10 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[rgba(15,15,15,0.85)] backdrop-blur-xl md:absolute md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[380px] md:rounded-2xl"
+      data-mobile-collapsed={!mobileExpanded}
+      data-desktop-collapsed={!sidebarOpen}
+    >
+      {/* Mobile drag handle */}
+      <div
+        className="flex cursor-pointer justify-center py-2 md:hidden"
+        onClick={() => setMobileExpanded(!mobileExpanded)}
+      >
+        <div className="h-1 w-8 rounded-full bg-white/20" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between p-6 pb-4">
+      <div className="flex items-center justify-between px-6 pt-2 pb-4 md:pt-6">
         <h1 className="text-xl font-semibold text-white">
           🌍 TravelAnimator
         </h1>
@@ -396,15 +413,25 @@ export default function Sidebar({
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">
-                {destinations.map((dest, index) => (
-                  <DestinationItem
-                    key={dest.id}
-                    destination={dest}
-                    index={index}
-                    onRemove={onRemoveDestination}
-                    disabled={isAnimating}
-                  />
-                ))}
+                <AnimatePresence initial={false}>
+                  {destinations.map((dest, index) => (
+                    <motion.div
+                      key={dest.id}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, x: -20, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <DestinationItem
+                        destination={dest}
+                        index={index}
+                        onRemove={onRemoveDestination}
+                        disabled={isAnimating}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </SortableContext>
           </DndContext>
@@ -654,20 +681,14 @@ export default function Sidebar({
                   onClick={handleShare}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/10"
                 >
-                  {shareMessage ? (
-                    <span className="text-[#00D4FF]">{shareMessage}</span>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
-                      Share
-                    </>
-                  )}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share
                 </button>
               </div>
             )}
@@ -775,5 +796,28 @@ export default function Sidebar({
         </div>
       )}
     </div>
+
+    {/* Desktop toggle button */}
+    <button
+      className={`hidden md:flex absolute z-10 top-1/2 -translate-y-1/2 h-10 w-5 items-center justify-center rounded-r-lg border border-l-0 border-white/10 bg-[rgba(15,15,15,0.85)] backdrop-blur-xl text-zinc-400 transition-all duration-300 hover:text-white ${
+        sidebarOpen
+          ? "left-[calc(1rem+380px)]"
+          : "left-0"
+      }`}
+      onClick={() => setSidebarOpen(!sidebarOpen)}
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className={`transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </button>
+    </>
   );
 }
