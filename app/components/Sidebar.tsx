@@ -17,6 +17,18 @@ import {
 import DestinationItem from "./DestinationItem";
 import type { AnimationSettings } from "./Map";
 
+const MAP_STYLE_OPTIONS: {
+  id: AnimationSettings["mapStyle"];
+  label: string;
+  styleId: string;
+}[] = [
+  { id: "dark", label: "Dark", styleId: "dark-v11" },
+  { id: "satellite", label: "Satellite", styleId: "satellite-streets-v12" },
+  { id: "light", label: "Light", styleId: "light-v11" },
+  { id: "outdoors", label: "Outdoors", styleId: "outdoors-v12" },
+  { id: "vintage", label: "Vintage", styleId: "light-v11" },
+];
+
 interface Destination {
   id: string;
   name: string;
@@ -232,6 +244,47 @@ export default function Sidebar({
 
             {settingsOpen && (
               <div className="mt-3 space-y-4">
+                {/* Map Style */}
+                <div>
+                  <label className="mb-1.5 block text-xs text-zinc-400">
+                    Map Style
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {MAP_STYLE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => updateSetting("mapStyle", opt.id)}
+                        className={`overflow-hidden rounded-lg border transition-colors ${
+                          settings.mapStyle === opt.id
+                            ? "border-cyan-400 ring-1 ring-cyan-400/50"
+                            : "border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`https://api.mapbox.com/styles/v1/mapbox/${opt.styleId}/static/12,45,2/120x80@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                          alt={opt.label}
+                          className="h-14 w-full object-cover"
+                          style={
+                            opt.id === "vintage"
+                              ? { filter: "sepia(0.4) saturate(0.8)" }
+                              : undefined
+                          }
+                        />
+                        <div
+                          className={`py-1 text-center text-[10px] font-medium ${
+                            settings.mapStyle === opt.id
+                              ? "text-cyan-400"
+                              : "text-zinc-500"
+                          }`}
+                        >
+                          {opt.label}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Speed */}
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">

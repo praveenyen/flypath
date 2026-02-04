@@ -21,6 +21,7 @@ export interface AnimationSettings {
   lineStyle: "solid" | "dashed" | "dotted";
   routeColor: string;
   showLabels: boolean;
+  mapStyle: "dark" | "satellite" | "light" | "outdoors" | "vintage";
 }
 
 const DEFAULT_SETTINGS: AnimationSettings = {
@@ -30,6 +31,7 @@ const DEFAULT_SETTINGS: AnimationSettings = {
   lineStyle: "solid",
   routeColor: "#00D4FF",
   showLabels: false,
+  mapStyle: "dark",
 };
 
 interface AnimationControl {
@@ -102,6 +104,43 @@ const LINE_DASH: Record<AnimationSettings["lineStyle"], number[] | undefined> =
     dotted: [0.5, 2],
   };
 
+const MAP_STYLE_URLS: Record<AnimationSettings["mapStyle"], string> = {
+  dark: "mapbox://styles/mapbox/dark-v11",
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  light: "mapbox://styles/mapbox/light-v11",
+  outdoors: "mapbox://styles/mapbox/outdoors-v12",
+  vintage: "mapbox://styles/mapbox/light-v11",
+};
+
+function addCustomLayers(map: mapboxgl.Map) {
+  map.addSource("route", {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: [] },
+  });
+  map.addLayer({
+    id: "route-line",
+    type: "line",
+    source: "route",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#00D4FF", "line-width": 3 },
+  });
+  map.addSource("route-points", {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: [] },
+  });
+  map.addLayer({
+    id: "route-points-circle",
+    type: "circle",
+    source: "route-points",
+    paint: {
+      "circle-radius": 5,
+      "circle-color": "#00D4FF",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 2,
+    },
+  });
+}
+
 export default function Map() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -142,36 +181,7 @@ export default function Map() {
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      map.addSource("route", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-
-      map.addLayer({
-        id: "route-line",
-        type: "line",
-        source: "route",
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#00D4FF", "line-width": 3 },
-      });
-
-      map.addSource("route-points", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-
-      map.addLayer({
-        id: "route-points-circle",
-        type: "circle",
-        source: "route-points",
-        paint: {
-          "circle-radius": 5,
-          "circle-color": "#00D4FF",
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2,
-        },
-      });
-
+      addCustomLayers(map);
       setMapLoaded(true);
     });
 
@@ -190,6 +200,22 @@ export default function Map() {
       pulsingMarkerRef.current?.remove();
     };
   }, []);
+
+  // Map style switching
+  const prevStyleRef = useRef(settings.mapStyle);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (prevStyleRef.current === settings.mapStyle) return;
+    prevStyleRef.current = settings.mapStyle;
+
+    setMapLoaded(false);
+    map.once("style.load", () => {
+      addCustomLayers(map);
+      setMapLoaded(true);
+    });
+    map.setStyle(MAP_STYLE_URLS[settings.mapStyle]);
+  }, [settings.mapStyle, mapLoaded]);
 
   // Apply route color and line style to map layers in real-time
   useEffect(() => {
@@ -504,7 +530,15 @@ export default function Map() {
 
   return (
     <div className="relative h-screen w-screen">
-      <div ref={mapContainerRef} className="h-full w-full" />
+      <div
+        ref={mapContainerRef}
+        className="h-full w-full"
+        style={
+          settings.mapStyle === "vintage"
+            ? { filter: "sepia(0.4) saturate(0.8)" }
+            : undefined
+        }
+      />
       <Sidebar
         destinations={destinations}
         onAddDestination={handleAddDestination}
