@@ -15,6 +15,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import DestinationItem from "./DestinationItem";
+import type { AnimationSettings } from "./Map";
 
 interface Destination {
   id: string;
@@ -43,6 +44,8 @@ interface SidebarProps {
   onStartAnimation: () => void;
   onTogglePause: () => void;
   onRestartAnimation: () => void;
+  settings: AnimationSettings;
+  onSettingsChange: (settings: AnimationSettings) => void;
 }
 
 export default function Sidebar({
@@ -56,15 +59,25 @@ export default function Sidebar({
   onStartAnimation,
   onTogglePause,
   onRestartAnimation,
+  settings,
+  onSettingsChange,
 }: SidebarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocoderResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  const updateSetting = <K extends keyof AnimationSettings>(
+    key: K,
+    value: AnimationSettings[K]
+  ) => {
+    onSettingsChange({ ...settings, [key]: value });
+  };
 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
@@ -144,7 +157,7 @@ export default function Sidebar({
             onBlur={() => setTimeout(() => setIsOpen(false), 200)}
             placeholder="Search for a city..."
             disabled={isAnimating}
-            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-40"
           />
 
           {isOpen && results.length > 0 && !isAnimating && (
@@ -167,7 +180,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Destinations List */}
+      {/* Destinations List + Settings (scrollable area) */}
       <div className="flex-1 overflow-y-auto px-6 pb-4">
         {destinations.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500">
@@ -196,6 +209,164 @@ export default function Sidebar({
               </div>
             </SortableContext>
           </DndContext>
+        )}
+
+        {/* Animation Settings (collapsible) */}
+        {destinations.length >= 2 && (
+          <div className="mt-4 border-t border-white/10 pt-3">
+            <button
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wider text-zinc-400"
+            >
+              <span>Animation Settings</span>
+              <svg
+                className={`h-4 w-4 transition-transform ${settingsOpen ? "rotate-180" : ""}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {settingsOpen && (
+              <div className="mt-3 space-y-4">
+                {/* Speed */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-xs text-zinc-400">Speed</label>
+                    <span className="text-xs text-zinc-500">
+                      {settings.speed.toFixed(1)}x
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value={settings.speed}
+                    onChange={(e) =>
+                      updateSetting("speed", parseFloat(e.target.value))
+                    }
+                    className="settings-slider"
+                  />
+                </div>
+
+                {/* Pause Duration */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-xs text-zinc-400">
+                      Pause Duration
+                    </label>
+                    <span className="text-xs text-zinc-500">
+                      {settings.pauseDuration.toFixed(1)}s
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5"
+                    step="0.5"
+                    value={settings.pauseDuration}
+                    onChange={(e) =>
+                      updateSetting(
+                        "pauseDuration",
+                        parseFloat(e.target.value)
+                      )
+                    }
+                    className="settings-slider"
+                  />
+                </div>
+
+                {/* Zoom at Stops */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-xs text-zinc-400">
+                      Zoom at Stops
+                    </label>
+                    <span className="text-xs text-zinc-500">
+                      {settings.stopZoom}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="14"
+                    step="1"
+                    value={settings.stopZoom}
+                    onChange={(e) =>
+                      updateSetting("stopZoom", parseInt(e.target.value))
+                    }
+                    className="settings-slider"
+                  />
+                </div>
+
+                {/* Line Style */}
+                <div>
+                  <label className="mb-1.5 block text-xs text-zinc-400">
+                    Line Style
+                  </label>
+                  <div className="flex gap-1">
+                    {(["solid", "dashed", "dotted"] as const).map((style) => (
+                      <button
+                        key={style}
+                        onClick={() => updateSetting("lineStyle", style)}
+                        className={`flex-1 rounded px-2 py-1 text-xs capitalize transition-colors ${
+                          settings.lineStyle === style
+                            ? "bg-white/20 text-white"
+                            : "bg-white/5 text-zinc-500 hover:bg-white/10"
+                        }`}
+                      >
+                        {style}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Route Color */}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-zinc-400">Route Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={settings.routeColor}
+                      onChange={(e) =>
+                        updateSetting("routeColor", e.target.value)
+                      }
+                      className="h-6 w-6 cursor-pointer rounded border border-white/10 bg-transparent p-0"
+                    />
+                    <span className="font-mono text-xs text-zinc-500">
+                      {settings.routeColor}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Show Labels */}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-zinc-400">
+                    Show Labels
+                  </label>
+                  <button
+                    onClick={() =>
+                      updateSetting("showLabels", !settings.showLabels)
+                    }
+                    className={`relative h-5 w-9 rounded-full transition-colors ${
+                      settings.showLabels ? "bg-cyan-500" : "bg-white/10"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                        settings.showLabels
+                          ? "translate-x-4"
+                          : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

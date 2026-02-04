@@ -14,6 +14,24 @@ interface Destination {
   lat: number;
 }
 
+export interface AnimationSettings {
+  speed: number;
+  pauseDuration: number;
+  stopZoom: number;
+  lineStyle: "solid" | "dashed" | "dotted";
+  routeColor: string;
+  showLabels: boolean;
+}
+
+const DEFAULT_SETTINGS: AnimationSettings = {
+  speed: 1,
+  pauseDuration: 1.5,
+  stopZoom: 8,
+  lineStyle: "solid",
+  routeColor: "#00D4FF",
+  showLabels: false,
+};
+
 interface AnimationControl {
   cancelled: boolean;
   paused: boolean;
@@ -26,7 +44,8 @@ function easeInOutCubic(t: number): number {
 function animatePhase(
   durationMs: number,
   control: AnimationControl,
-  onFrame: (progress: number) => void
+  onFrame: (progress: number) => void,
+  getSpeed: () => number = () => 1
 ): Promise<boolean> {
   return new Promise((resolve) => {
     let elapsed = 0;
@@ -40,7 +59,7 @@ function animatePhase(
 
       const now = performance.now();
       if (!control.paused) {
-        elapsed += now - lastTime;
+        elapsed += (now - lastTime) * getSpeed();
       }
       lastTime = now;
 
@@ -76,12 +95,26 @@ function computeArcs(destinations: Destination[]): [number, number][][] {
   return arcs;
 }
 
+const LINE_DASH: Record<AnimationSettings["lineStyle"], number[] | undefined> =
+  {
+    solid: undefined,
+    dashed: [2, 2],
+    dotted: [0.5, 2],
+  };
+
 export default function Map() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Settings
+  const [settings, setSettings] = useState<AnimationSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   // Animation state
   const [isAnimating, setIsAnimating] = useState(false);
@@ -158,6 +191,28 @@ export default function Map() {
     };
   }, []);
 
+  // Apply route color and line style to map layers in real-time
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    map.setPaintProperty("route-line", "line-color", settings.routeColor);
+    map.setPaintProperty(
+      "route-points-circle",
+      "circle-color",
+      settings.routeColor
+    );
+
+    const dash = LINE_DASH[settings.lineStyle];
+    map.setPaintProperty("route-line", "line-dasharray", dash);
+
+    // Update pulsing dot color if it exists
+    const el = pulsingMarkerRef.current?.getElement();
+    if (el) {
+      el.style.setProperty("--dot-color", settings.routeColor);
+    }
+  }, [settings.routeColor, settings.lineStyle, mapLoaded]);
+
   // Update markers, route, and bounds (skip route/bounds during animation)
   useEffect(() => {
     const map = mapRef.current;
@@ -168,11 +223,22 @@ export default function Map() {
     markersRef.current = [];
 
     destinations.forEach((dest, i) => {
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "relative";
+
       const el = document.createElement("div");
       el.className = "destination-marker";
       el.textContent = String(i + 1);
+      wrapper.appendChild(el);
 
-      const marker = new mapboxgl.Marker({ element: el })
+      if (settings.showLabels) {
+        const label = document.createElement("div");
+        label.className = "destination-label";
+        label.textContent = dest.name;
+        wrapper.appendChild(label);
+      }
+
+      const marker = new mapboxgl.Marker({ element: wrapper, anchor: "center" })
         .setLngLat([dest.lng, dest.lat])
         .addTo(map);
 
@@ -229,7 +295,7 @@ export default function Map() {
         padding: { top: 80, bottom: 80, left: 420, right: 80 },
       });
     }
-  }, [destinations, mapLoaded, isAnimating]);
+  }, [destinations, mapLoaded, isAnimating, settings.showLabels]);
 
   // --- Animation ---
   const startAnimation = useCallback(async () => {
@@ -245,6 +311,7 @@ export default function Map() {
 
     const arcs = computeArcs(destinations);
     const totalSegments = destinations.length - 1;
+    const getSpeed = () => settingsRef.current.speed;
 
     // Clear route
     const routeSource = map.getSource("route") as mapboxgl.GeoJSONSource;
@@ -253,6 +320,10 @@ export default function Map() {
     // Create pulsing marker
     const pulsingEl = document.createElement("div");
     pulsingEl.className = "pulsing-dot";
+    pulsingEl.style.setProperty(
+      "--dot-color",
+      settingsRef.current.routeColor
+    );
     const pulsingMarker = new mapboxgl.Marker({
       element: pulsingEl,
       anchor: "center",
@@ -270,21 +341,31 @@ export default function Map() {
       destinations[0].lat,
     ];
 
-    let ok = await animatePhase(2000, control, (progress) => {
-      const eased = easeInOutCubic(progress);
-      const lng = startCenter[0] + (firstDest[0] - startCenter[0]) * eased;
-      const lat = startCenter[1] + (firstDest[1] - startCenter[1]) * eased;
-      const zoom = startZoom + (8 - startZoom) * eased;
-      map.jumpTo({ center: [lng, lat], zoom });
-      pulsingMarker.setLngLat([lng, lat]).addTo(map);
-    });
+    let ok = await animatePhase(
+      2000,
+      control,
+      (progress) => {
+        const eased = easeInOutCubic(progress);
+        const stopZoom = settingsRef.current.stopZoom;
+        const lng = startCenter[0] + (firstDest[0] - startCenter[0]) * eased;
+        const lat = startCenter[1] + (firstDest[1] - startCenter[1]) * eased;
+        const zoom = startZoom + (stopZoom - startZoom) * eased;
+        map.jumpTo({ center: [lng, lat], zoom });
+        pulsingMarker.setLngLat([lng, lat]).addTo(map);
+      },
+      getSpeed
+    );
     if (!ok) {
       pulsingMarker.remove();
       return;
     }
 
     // Pause at first destination
-    ok = await animatePhase(1500, control, () => {});
+    ok = await animatePhase(
+      settingsRef.current.pauseDuration * 1000,
+      control,
+      () => {}
+    );
     if (!ok) {
       pulsingMarker.remove();
       return;
@@ -295,53 +376,63 @@ export default function Map() {
       if (control.cancelled) break;
 
       const arcCoords = arcs[i];
-      const minZoom = 4;
 
-      ok = await animatePhase(3000, control, (progress) => {
-        const eased = easeInOutCubic(progress);
-        const pointIndex = Math.min(
-          Math.floor(eased * (arcCoords.length - 1)),
-          arcCoords.length - 1
-        );
-        const currentPos = arcCoords[pointIndex];
+      ok = await animatePhase(
+        3000,
+        control,
+        (progress) => {
+          const eased = easeInOutCubic(progress);
+          const pointIndex = Math.min(
+            Math.floor(eased * (arcCoords.length - 1)),
+            arcCoords.length - 1
+          );
+          const currentPos = arcCoords[pointIndex];
 
-        // Zoom: 8 -> minZoom -> 8
-        const zoomCurve = Math.sin(Math.PI * progress);
-        const zoom = 8 - (8 - minZoom) * zoomCurve;
+          // Read stop zoom from settings ref for real-time updates
+          const stopZoom = settingsRef.current.stopZoom;
+          const minZoom = Math.min(Math.max(3, stopZoom - 4), 6);
+          const zoomCurve = Math.sin(Math.PI * progress);
+          const zoom = stopZoom - (stopZoom - minZoom) * zoomCurve;
 
-        map.jumpTo({ center: currentPos, zoom });
+          map.jumpTo({ center: currentPos, zoom });
 
-        // Build route: completed arcs + partial current
-        const features: GeoJSON.Feature[] = arcs
-          .slice(0, i)
-          .map((coords) => ({
-            type: "Feature" as const,
-            geometry: {
-              type: "LineString" as const,
-              coordinates: coords,
-            },
-            properties: {},
-          }));
+          // Build route: completed arcs + partial current
+          const features: GeoJSON.Feature[] = arcs
+            .slice(0, i)
+            .map((coords) => ({
+              type: "Feature" as const,
+              geometry: {
+                type: "LineString" as const,
+                coordinates: coords,
+              },
+              properties: {},
+            }));
 
-        if (pointIndex > 0) {
-          features.push({
-            type: "Feature" as const,
-            geometry: {
-              type: "LineString" as const,
-              coordinates: arcCoords.slice(0, pointIndex + 1),
-            },
-            properties: {},
-          });
-        }
+          if (pointIndex > 0) {
+            features.push({
+              type: "Feature" as const,
+              geometry: {
+                type: "LineString" as const,
+                coordinates: arcCoords.slice(0, pointIndex + 1),
+              },
+              properties: {},
+            });
+          }
 
-        routeSource?.setData({ type: "FeatureCollection", features });
-        pulsingMarker.setLngLat(currentPos);
-        setAnimationProgress((i + eased) / totalSegments);
-      });
+          routeSource?.setData({ type: "FeatureCollection", features });
+          pulsingMarker.setLngLat(currentPos);
+          setAnimationProgress((i + eased) / totalSegments);
+        },
+        getSpeed
+      );
       if (!ok) break;
 
-      // Pause at destination
-      ok = await animatePhase(1500, control, () => {});
+      // Pause at destination (reads current setting)
+      ok = await animatePhase(
+        settingsRef.current.pauseDuration * 1000,
+        control,
+        () => {}
+      );
       if (!ok) break;
     }
 
@@ -356,7 +447,10 @@ export default function Map() {
         geometry: { type: "LineString" as const, coordinates: coords },
         properties: {},
       }));
-      routeSource?.setData({ type: "FeatureCollection", features: allFeatures });
+      routeSource?.setData({
+        type: "FeatureCollection",
+        features: allFeatures,
+      });
 
       setAnimationProgress(1);
 
@@ -422,6 +516,8 @@ export default function Map() {
         onStartAnimation={startAnimation}
         onTogglePause={handleTogglePause}
         onRestartAnimation={handleRestartAnimation}
+        settings={settings}
+        onSettingsChange={setSettings}
       />
     </div>
   );
