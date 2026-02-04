@@ -58,6 +58,7 @@ interface SidebarProps {
   onRestartAnimation: () => void;
   settings: AnimationSettings;
   onSettingsChange: (settings: AnimationSettings) => void;
+  onOpenExport: () => void;
 }
 
 export default function Sidebar({
@@ -73,6 +74,7 @@ export default function Sidebar({
   onRestartAnimation,
   settings,
   onSettingsChange,
+  onOpenExport,
 }: SidebarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocoderResult[]>([]);
@@ -427,20 +429,40 @@ export default function Sidebar({
       {destinations.length >= 2 && (
         <div className="border-t border-white/10 px-6 py-4">
           {!isAnimating ? (
-            <button
-              onClick={onStartAnimation}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00D4FF] py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#00bfe6]"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="currentColor"
+            <div className="space-y-2">
+              <button
+                onClick={onStartAnimation}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00D4FF] py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#00bfe6]"
               >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Animate Route
-            </button>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Animate Route
+              </button>
+              <button
+                onClick={onOpenExport}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/10"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export Video
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {/* Progress bar */}

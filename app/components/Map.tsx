@@ -5,6 +5,10 @@ import mapboxgl from "mapbox-gl";
 import greatCircle from "@turf/great-circle";
 import "mapbox-gl/dist/mapbox-gl.css";
 import Sidebar from "./Sidebar";
+import ExportModal, {
+  type ExportOptions,
+  type ExportState,
+} from "./ExportModal";
 
 interface Destination {
   id: string;
@@ -141,6 +145,15 @@ function addCustomLayers(map: mapboxgl.Map) {
   });
 }
 
+function triggerDownload(url: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 export default function Map() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -164,6 +177,15 @@ export default function Map() {
     paused: false,
   });
   const pulsingMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const currentPosRef = useRef<[number, number] | null>(null);
+
+  // Export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportState, setExportState] = useState<ExportState>("idle");
+  const [exportProgress, setExportProgress] = useState(0);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [downloadFormat, setDownloadFormat] = useState("mp4");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Map initialization
   useEffect(() => {
@@ -176,6 +198,7 @@ export default function Map() {
       style: "mapbox://styles/mapbox/dark-v11",
       center: [15, 50],
       zoom: 3,
+      preserveDrawingBuffer: true,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
@@ -378,11 +401,13 @@ export default function Map() {
         const zoom = startZoom + (stopZoom - startZoom) * eased;
         map.jumpTo({ center: [lng, lat], zoom });
         pulsingMarker.setLngLat([lng, lat]).addTo(map);
+        currentPosRef.current = [lng, lat];
       },
       getSpeed
     );
     if (!ok) {
       pulsingMarker.remove();
+      currentPosRef.current = null;
       return;
     }
 
@@ -447,6 +472,7 @@ export default function Map() {
 
           routeSource?.setData({ type: "FeatureCollection", features });
           pulsingMarker.setLngLat(currentPos);
+          currentPosRef.current = currentPos as [number, number];
           setAnimationProgress((i + eased) / totalSegments);
         },
         getSpeed
@@ -465,6 +491,7 @@ export default function Map() {
     // --- Cleanup ---
     pulsingMarker.remove();
     pulsingMarkerRef.current = null;
+    currentPosRef.current = null;
 
     if (!control.cancelled) {
       // Restore full route
@@ -515,6 +542,208 @@ export default function Map() {
     });
   }, [startAnimation]);
 
+  // --- Export ---
+  const handleExport = useCallback(
+    async (options: ExportOptions) => {
+      const map = mapRef.current;
+      if (!map || !mapLoaded || destinations.length < 2) return;
+
+      setExportState("recording");
+      setExportProgress(0);
+      setDownloadUrl(null);
+      setDownloadFormat(options.format);
+      setErrorMessage(null);
+
+      try {
+        const [targetW, targetH] =
+          options.resolution === "720p" ? [1280, 720] : [1920, 1080];
+
+        // Compositing canvas for resolution control + watermark + markers
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = targetW;
+        exportCanvas.height = targetH;
+        const ctx = exportCanvas.getContext("2d")!;
+
+        // MediaRecorder
+        const stream = exportCanvas.captureStream(30);
+        const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : "video/webm";
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: 5_000_000,
+        });
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        // Compositing loop — draws map canvas + markers + watermark each frame
+        let active = true;
+        const composite = () => {
+          if (!active) return;
+          const mapCanvas = map.getCanvas();
+          const cw = mapContainerRef.current?.clientWidth || mapCanvas.width;
+          const ch = mapContainerRef.current?.clientHeight || mapCanvas.height;
+
+          ctx.drawImage(mapCanvas, 0, 0, targetW, targetH);
+
+          // Draw destination markers
+          destinations.forEach((dest, i) => {
+            const px = map.project([dest.lng, dest.lat]);
+            const x = (px.x / cw) * targetW;
+            const y = (px.y / ch) * targetH;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = "#3b82f6";
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = "bold 13px sans-serif";
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(i + 1), x, y);
+          });
+
+          // Draw current-position dot
+          if (currentPosRef.current) {
+            const px = map.project(currentPosRef.current);
+            const x = (px.x / cw) * targetW;
+            const y = (px.y / ch) * targetH;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = settingsRef.current.routeColor;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+
+          // Watermark
+          if (options.watermark) {
+            ctx.save();
+            ctx.font = `bold ${Math.round(targetH / 45)}px sans-serif`;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+            ctx.fillText("TravelAnimator", targetW - 20, targetH - 20);
+            ctx.restore();
+          }
+
+          requestAnimationFrame(composite);
+        };
+
+        // Start recording + compositing, then replay animation
+        composite();
+        recorder.start(100);
+        await startAnimation();
+
+        // Brief delay for final frames
+        await new Promise((r) => setTimeout(r, 500));
+
+        // Stop recording
+        active = false;
+        const webmBlob = await new Promise<Blob>((resolve) => {
+          recorder.onstop = () =>
+            resolve(new Blob(chunks, { type: mimeType }));
+          recorder.stop();
+        });
+
+        // --- Format conversion with FFmpeg ---
+        setExportState("encoding");
+        setExportProgress(0);
+
+        try {
+          const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+          const { toBlobURL, fetchFile } = await import("@ffmpeg/util");
+
+          const ffmpeg = new FFmpeg();
+          ffmpeg.on("progress", ({ progress }) => {
+            setExportProgress(Math.max(0, Math.min(1, progress)));
+          });
+
+          const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+          await ffmpeg.load({
+            coreURL: await toBlobURL(
+              `${baseURL}/ffmpeg-core.js`,
+              "text/javascript"
+            ),
+            wasmURL: await toBlobURL(
+              `${baseURL}/ffmpeg-core.wasm`,
+              "application/wasm"
+            ),
+          });
+
+          await ffmpeg.writeFile("input.webm", await fetchFile(webmBlob));
+
+          if (options.format === "mp4") {
+            await ffmpeg.exec([
+              "-i",
+              "input.webm",
+              "-c:v",
+              "libx264",
+              "-pix_fmt",
+              "yuv420p",
+              "-movflags",
+              "+faststart",
+              "output.mp4",
+            ]);
+            const data = await ffmpeg.readFile("output.mp4");
+            const buf = ((data as Uint8Array).buffer) as ArrayBuffer;
+            const blob = new Blob([buf], { type: "video/mp4" });
+            const url = URL.createObjectURL(blob);
+            setDownloadUrl(url);
+            triggerDownload(url, "travel-animation.mp4");
+          } else {
+            await ffmpeg.exec([
+              "-i",
+              "input.webm",
+              "-vf",
+              `fps=15,scale=${Math.min(targetW, 640)}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+              "output.gif",
+            ]);
+            const data = await ffmpeg.readFile("output.gif");
+            const buf = ((data as Uint8Array).buffer) as ArrayBuffer;
+            const blob = new Blob([buf], { type: "image/gif" });
+            const url = URL.createObjectURL(blob);
+            setDownloadUrl(url);
+            triggerDownload(url, "travel-animation.gif");
+          }
+
+          ffmpeg.terminate();
+        } catch {
+          // FFmpeg unavailable — fall back to webm download
+          setDownloadFormat("webm");
+          const url = URL.createObjectURL(webmBlob);
+          setDownloadUrl(url);
+          triggerDownload(url, "travel-animation.webm");
+        }
+
+        setExportState("done");
+      } catch (err) {
+        setExportState("error");
+        setErrorMessage(
+          err instanceof Error ? err.message : "Export failed"
+        );
+      }
+    },
+    [destinations, mapLoaded, startAnimation]
+  );
+
+  const handleCloseExport = useCallback(() => {
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    setShowExportModal(false);
+    setExportState("idle");
+    setExportProgress(0);
+    setDownloadUrl(null);
+    setErrorMessage(null);
+  }, [downloadUrl]);
+
   // --- Destination handlers ---
   const handleAddDestination = useCallback((dest: Destination) => {
     setDestinations((prev) => [...prev, dest]);
@@ -552,6 +781,17 @@ export default function Map() {
         onRestartAnimation={handleRestartAnimation}
         settings={settings}
         onSettingsChange={setSettings}
+        onOpenExport={() => setShowExportModal(true)}
+      />
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={handleCloseExport}
+        onExport={handleExport}
+        exportState={exportState}
+        exportProgress={exportProgress}
+        downloadUrl={downloadUrl}
+        downloadFormat={downloadFormat}
+        errorMessage={errorMessage}
       />
     </div>
   );
