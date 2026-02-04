@@ -717,7 +717,7 @@ export default function Map() {
             ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.textAlign = "right";
             ctx.textBaseline = "bottom";
-            ctx.fillText("TravelAnimator", targetW - 20, targetH - 20);
+            ctx.fillText("FlyPath", targetW - 20, targetH - 20);
             ctx.restore();
           }
 

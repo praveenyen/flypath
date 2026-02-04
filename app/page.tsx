@@ -115,8 +115,28 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "FlyPath",
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Web Browser",
+    url: "https://flypath.app",
+    description:
+      "Create stunning animated travel route videos in your browser.",
+    author: { "@type": "Person", name: "Praveen Yen" },
+    offers: [
+      { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Pro", price: "9", priceCurrency: "USD" },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ─── Navbar ─── */}
       <nav
         className={`fixed top-0 z-50 w-full transition-all duration-300 ${
@@ -127,8 +147,8 @@ export default function LandingPage() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="text-lg font-bold tracking-tight text-gray-900">
-            <span className="mr-1">🌍</span>
-            Travel<span className="text-[#00D4FF]">Animator</span>
+            <span className="mr-1">✈️</span>
+            Fly<span className="text-[#00D4FF]">Path</span>
           </span>
           <div className="hidden items-center gap-8 md:flex">
             <a
@@ -194,7 +214,7 @@ export default function LandingPage() {
             </motion.span>
           ))}
           <br className="hidden sm:block" />
-          {["cinematic", "animation"].map((word, i) => (
+          {["cinematic", "fly-through"].map((word, i) => (
             <motion.span
               key={`a-${i}`}
               variants={wordFade}
@@ -247,7 +267,7 @@ export default function LandingPage() {
               </div>
               <div className="mx-auto max-w-sm flex-1">
                 <div className="rounded-md bg-gray-100 px-3 py-1 text-center text-xs text-gray-400">
-                  travelanimator.app
+                  flypath.app
                 </div>
               </div>
               <div className="w-[52px]" />
@@ -255,7 +275,7 @@ export default function LandingPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/app-demo.png"
-              alt="TravelAnimator app showing a satellite map with animated cyan route"
+              alt="FlyPath app showing a satellite map with animated cyan route line between destinations"
               className="aspect-video w-full bg-gray-100 object-cover"
             />
           </div>
@@ -628,7 +648,7 @@ export default function LandingPage() {
               </p>
               <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
                 <span className="flex-1 truncate text-xs text-gray-500">
-                  travelanimator.app/route/abc123
+                  flypath.app/route/abc123
                 </span>
                 <div className="flex h-6 w-6 items-center justify-center rounded bg-cyan-50">
                   <svg
@@ -700,7 +720,7 @@ export default function LandingPage() {
               />
             </svg>
             <p className="max-w-2xl text-xl italic leading-relaxed text-gray-700 md:text-2xl">
-              TravelAnimator turned my boring itinerary into a viral travel
+              FlyPath turned my boring itinerary into a viral travel
               reel. Exported in 30 seconds.
             </p>
             <div className="mt-6 flex items-center gap-3">
@@ -897,7 +917,7 @@ export default function LandingPage() {
       <footer className="border-t border-gray-200 bg-[#F9FAFB] px-6 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 md:flex-row">
           <span className="text-sm text-gray-400">
-            <span className="mr-1">🌍</span> TravelAnimator &copy; 2026
+            <span className="mr-1">✈️</span> FlyPath &copy; 2026
           </span>
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <a

@@ -10,9 +10,38 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TravelAnimator - Turn Your Travel Route Into a Cinematic Animation",
+  title: "FlyPath — Turn Travel Routes into Cinematic Animations",
   description:
-    "Create stunning animated travel route videos. Add destinations, customize styles, and export cinematic animations in one click.",
+    "Create stunning animated travel route videos in your browser. Add destinations, pick a map style, and export cinematic fly-through videos in seconds. Free, no signup.",
+  metadataBase: new URL("https://flypath.app"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "FlyPath — Turn Travel Routes into Cinematic Animations",
+    description:
+      "Create stunning animated travel route videos in your browser. Add destinations, pick a map style, and export in seconds.",
+    url: "https://flypath.app",
+    siteName: "FlyPath",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FlyPath — cinematic travel route animation tool",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@praveenyen",
+    creator: "@praveenyen",
+    title: "FlyPath — Turn Travel Routes into Cinematic Animations",
+    description:
+      "Create stunning animated travel route videos in your browser. Add destinations, pick a map style, and export in seconds.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

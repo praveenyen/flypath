@@ -1,5 +1,8 @@
-export const metadata = {
-  title: "TravelAnimator",
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "FlyPath",
+  alternates: { canonical: "/app" },
 };
 
 export default function AppLayout({

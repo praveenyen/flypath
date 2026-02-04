@@ -32,7 +32,7 @@ const MAP_STYLE_OPTIONS: {
   { id: "vintage", label: "Vintage", styleId: "light-v11" },
 ];
 
-const STORAGE_KEY = "travelanimator-routes";
+const STORAGE_KEY = "flypath-routes";
 
 interface SavedRoute {
   id: string;
@@ -248,7 +248,8 @@ export default function Sidebar({
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-2 pb-4 md:pt-6">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-          TravelAnimator
+          ✈️
+          FlyPath
         </h1>
         <div className="flex items-center gap-1">
           <button
